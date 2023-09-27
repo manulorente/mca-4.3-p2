@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: library
+  namespace: test
+  labels:
+    app: library
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: library
+  template:
+    metadata:
+      labels:
+        app: library
+    spec:
+      securityContext:
+        runAsUser: 1000
+      restartPolicy: Always
+      containers:
+      - name: library
+        image: manloralm/mca-4.3-p2:v1
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:mysql://mysql-service:3306/test
+        - name: SERVER_PORT
+          value: "8881"
+        ports:
+        - containerPort: 8881
+        securityContext:
+          allowPrivilegeEscalation: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: library
+  namespace: test
+  labels:
+    app: library
+spec:
+  ports:
+  - port: 8881
+    targetPort: 8881
+    protocol: TCP
+    name: library-port
+  selector:
+    app: library
+  type: ClusterIP

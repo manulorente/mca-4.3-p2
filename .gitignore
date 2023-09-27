@@ -1,0 +1,71 @@
+# Maven target directory
+/target/
+
+# Compiled Java classes
+*.class
+
+# Log files
+*.log
+
+# IDE-specific files
+.idea/
+.vscode/
+
+# Compiled bytecode
+*.class
+
+# Generated files
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+
+# Maven and Spring Boot configuration files
+application.properties
+application.yml
+
+# Eclipse-specific files and directories
+.classpath
+.project
+.settings/
+
+# IntelliJ IDEA-specific files and directories
+*.iml
+.idea/
+*.iws
+
+# NetBeans-specific files and directories
+nb-configuration.xml
+.nb-gradle/
+
+# Spring Tool Suite (STS) specific files
+.springBeans
+
+# macOS specific files
+.DS_Store
+
+# Windows Thumbs.db
+Thumbs.db
+
+# Checkstyle
+checkstyle-suppressions.xml
+
+# Checkstyle Output
+checkstyle-out.xml
+
+# FindBugs
+findbugs.xml
+findbugsXml.xml
+
+# SpotBugs
+spotbugsXml.xml
+
+# PMD
+pmd.xml
+
+# IDE code styles
+.editorconfig
+
+# Local Maven repository
+.m2/
