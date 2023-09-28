@@ -1,24 +1,25 @@
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mysql
+  name: library-mysql
   namespace: test
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mysql-deployment
+      name: library-mysql
   template:
     metadata:
       labels:
-        app: mysql-deployment
+        name: library-mysql
+        version: "8"
     spec:
       containers:
       - name: mysql
-        image: mysql:8.0.23
+        image: mysql:8
         ports:
-        - containerPort: 3306
+        - name: jdbc
+          containerPort: 3306
         env:
         - name: MYSQL_DATABASE
           value: test
@@ -28,16 +29,17 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mysql-service
+  name: library-mysql
   namespace: test
   labels:
-    app: mysql-deployment
+    name: library-mysql
 spec:
   ports:
     - port: 3306
-      targetPort: 3306
+      targetPort: jdbc
       protocol: TCP
-      name: mysql-port
+      name: jdbc
   selector:
-    app: mysql-deployment
+    name: library-mysql
+    version: "8"
   type: ClusterIP

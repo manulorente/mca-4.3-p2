@@ -1,12 +1,17 @@
 # mca-4.3-p2
 
-Istio Canary Deployments with Flagger
+## Setup the environment
 
-## Generate Docker images in DockerHub [v1-4]
+[Blue/Green deployments with Flagger and Kubernetes](https://fluxcd.io/flagger/tutorials/kubernetes-blue-green/)
+
+### Generate Docker images in DockerHub
+
+Prior to this, need modify the application properties in all versions to use the same port since blue/green deployment forward all traffic to the new application version.
 
 ``` bash
-mvn spring-boot:build-image -Dspring-boot.build-image.imageName=manloralm/mca-4.3-p2:v[1-4]
-docker push manloralm/mca-4.3-p2:v[1-4]
+mvn spring-boot:build-image -Dspring-boot.build-image.imageName=manloralm/mca-4.3-p2:v<version>
+
+docker push manloralm/mca-4.3-p2:v<version>
 ```
 
 Need to deploy first the database to allow pass the integration tests.
@@ -20,21 +25,17 @@ docker run -d \
 mysql:8.0.23
 ```
 
-## Setup MiniKube cluster with Istio 1.19 and Kubernetes Metrics Server
+### Setup MiniKube cluster with Istio 1.19 and Kubernetes Metrics Server
 
 ``` bash
-minikube start --memory 8192 --cpus 4 \
+minikube start --memory 12288 --cpus 4 \
 --addons enable ingress \
 --addons enable istio-provisioner \
 --addons enable istio \
 --addons enable metrics-server
 ```
 
-## Install Flagger
-
-[Link](https://docs.flagger.app/tutorials/istio-progressive-delivery)
-
-## Install Istio 1.19 and metrics server
+### Install Istio 1.19 and metrics server
 
 ``` bash
 istioctl install --set profile=default
@@ -43,11 +44,9 @@ kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.19/samp
 
 ```
 
-## Add Flagger and Grafana to k8s cluster
+### Add Flagger and Grafana to k8s cluster
 
 ``` bash
-kubectl apply -f https://raw.githubusercontent.com/weaveworks/flagger/master/artifacts/flagger/crd.yaml
-
 helm upgrade -i flagger flagger/flagger \
 --namespace=istio-system \
 --set crd.create=false \
@@ -60,15 +59,15 @@ helm upgrade -i flagger-grafana flagger/grafana \
 --set user=admin \
 --set password=change-me
 
-```
-
-## Run the port forward command and navigate to http://localhost:3000 - admin/change-me
-
-``` bash
 kubectl -n istio-system port-forward svc/flagger-grafana 3000:80
+
 ```
 
-## Configure Flagger to use Istio
+Navigate to <http://localhost:3000> - admin/change-me
+
+## Setup the application
+
+### Create the namespace test and enable istio injection
 
 ``` bash
 kubectl create ns test
@@ -77,7 +76,7 @@ kubectl label namespace test istio-injection=enabled
 
 ```
 
-## Deploy database and app
+### Deploy database and application
 
 ``` bash
 kubectl apply -f k8s/mysql.yaml
@@ -85,34 +84,38 @@ kubectl apply -f k8s/mysql.yaml
 kubectl apply -f k8s/library.yaml
 ```
 
-## Deploy canary resource and gateway
+### Deploy canary resource and gateway
 
 ``` bash
-kubectl apply -f k8s/canary.yaml
-
 kubectl apply -f k8s/gateway.yaml
+
+kubectl apply -f k8s/library-canary.yaml
 ```
 
-## Deploy service to generate load
+### Deploy the load testing service to generate traffic during the analysis
 
 ``` bash
 kubectl apply -k github.com/weaveworks/flagger//kustomize/tester
 ```
 
-## Apply changes to the canary
+## Testing
+
+### Deploy each version of the application
 
 ``` bash
-kubectl -n test set image deployment/library library=manloralm/mca-4.3-p2:v<version>
+kubectl -n test set image deployment/library library=manloralm/mca-4.3-p2:v2
+
+kubectl -n test set image deployment/library library=manloralm/mca-4.3-p2:v3
+
+kubectl -n test set image deployment/library library=manloralm/mca-4.3-p2:v4
 ```
 
-Need to update all resources with the new version server port and image. Each app version has a different port.
-
-``` bash
-kubectl apply -k ./k8s
-```
-
-## Watch the canary progress
+### Watch the canary progress
 
 ``` bash
 watch -n 1 'kubectl describe canary.flagger.app library -n test | tail'
 ```
+
+### Output result
+
+![Output result](promotion.png)

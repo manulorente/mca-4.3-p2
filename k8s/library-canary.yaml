@@ -1,0 +1,56 @@
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: library
+  namespace: test
+spec:
+  # service mesh provider can be: kubernetes, istio, appmesh, nginx, gloo
+  provider: istio
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: library
+  progressDeadlineSeconds: 60   
+  service:
+    port: 8881
+    targetPort: 8881
+    gateways:
+    - public-gateway.istio-system.svc.cluster.local
+    hosts:
+    - "*"
+    trafficPolicy:
+      tls:
+        mode: DISABLE
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+      retryOn: "gateway-error,connect-failure,refused-stream"
+  analysis:
+    interval: 30s
+    # max number of failed checks before rollback
+    threshold: 5
+    # number of checks to run before rollback
+    iterations: 5
+    metrics:
+      - name: request-success-rate
+        thresholdRange:
+          min: 99
+        interval: 1m
+      - name: request-duration
+        thresholdRange:
+          max: 500
+        interval: 30s
+    webhooks:
+      - name: acceptance-test
+        type: pre-rollout
+        url: http://flagger-loadtester.test/
+        timeout: 30s
+        metadata:
+          type: bash
+          cmd: "curl -s http://library-canary:8881/api/books/ | grep title"
+      - name: load-test
+        url: http://flagger-loadtester.test/
+        timeout: 30s
+        metadata:
+          type: bash
+          cmd: "hey -z 15s -q 10 -c 2 http://library-canary.test:8881/api/books/"
